@@ -1,0 +1,39 @@
+@import url("https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css");
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gowun+Dodum&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-pixel: "Galmuri11", "DungGeunMo", monospace;
+  --font-hand: "Nanum Pen Script", cursive;
+  --font-body: "Gowun Dodum", system-ui, sans-serif;
+}
+
+html,
+body {
+  background-color: #f5f0e6;
+  color: #2b2620;
+  font-family: var(--font-body);
+}
+
+/* 크림 페이퍼 배경 미세 질감 */
+body {
+  background-image:
+    radial-gradient(rgba(180, 165, 130, 0.08) 1px, transparent 1px),
+    radial-gradient(rgba(180, 165, 130, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px, 32px 32px;
+  background-position: 0 0, 11px 16px;
+  min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
