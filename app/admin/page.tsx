@@ -1,7 +1,8 @@
 import { supabaseConfigured, createServiceClient } from "@/lib/supabase";
 import SetupNotice from "@/components/SetupNotice";
-import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto } from "./actions";
-import type { Photo, PhotoTag } from "@/lib/types";
+import Link from "next/link";
+import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, deleteBoard, changePassword } from "./actions";
+import type { Photo, PhotoTag, Board } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,9 @@ function LoginGate({ error }: { error?: string }) {
         />
         {error === "1" && <p className="mb-2 text-sm text-[#c0392b]">비밀번호가 틀렸어요.</p>}
         {error === "noenv" && (
-          <p className="mb-2 text-sm text-[#c0392b]">ADMIN_PASSWORD 환경변수가 설정되지 않았어요.</p>
+          <p className="mb-2 text-sm text-[#c0392b]">
+            어드민 설정을 불러올 수 없어요. SUPABASE_SERVICE_ROLE_KEY 환경변수를 확인해주세요.
+          </p>
         )}
         <button
           type="submit"
@@ -52,6 +55,12 @@ export default async function AdminPage({
   const { data: tagsData } = await supabase.from("photo_tags").select("*");
   const tags = (tagsData ?? []) as PhotoTag[];
 
+  const { data: boardsData } = await supabase
+    .from("boards")
+    .select("*")
+    .order("created_at", { ascending: true });
+  const boards = (boardsData ?? []) as Board[];
+
   const tagMap = new Map<string, string[]>();
   for (const t of tags) {
     const arr = tagMap.get(t.photo_id) ?? [];
@@ -72,9 +81,97 @@ export default async function AdminPage({
       {searchParams.ok === "upload" && (
         <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">업로드 완료!</p>
       )}
+      {searchParams.ok === "board" && (
+        <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">보드 생성 완료!</p>
+      )}
       {searchParams.error === "nofile" && (
         <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">파일을 선택해주세요.</p>
       )}
+      {searchParams.error === "noname" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">친구 이름을 입력해주세요.</p>
+      )}
+      {searchParams.error === "dupboard" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">이미 같은 이름의 보드가 있어요.</p>
+      )}
+      {searchParams.error === "board" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">보드 생성에 실패했어요. 다시 시도해주세요.</p>
+      )}
+      {searchParams.ok === "pw" && (
+        <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">비밀번호가 변경됐어요!</p>
+      )}
+      {searchParams.error === "pwshort" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">새 비밀번호는 4자 이상이어야 해요.</p>
+      )}
+      {searchParams.error === "pwmismatch" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">새 비밀번호 확인이 일치하지 않아요.</p>
+      )}
+      {searchParams.error === "pwwrong" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">현재 비밀번호가 틀렸어요.</p>
+      )}
+      {(searchParams.error === "pwnodb" || searchParams.error === "pwfail") && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">비밀번호 변경에 실패했어요. DB 연결(SUPABASE_SERVICE_ROLE_KEY)을 확인해주세요.</p>
+      )}
+
+      {/* 보드 관리 */}
+      <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
+        <h2 className="mb-3 font-pixel text-[12px] text-album-navy">보드 관리</h2>
+
+        <form action={createBoard} className="mb-5 grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm text-ink">
+            친구 이름
+            <input
+              name="friend_name"
+              required
+              maxLength={30}
+              placeholder="지혜"
+              className="rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-ink"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-ink">
+            환영 쪽지 (비우면 기본 문구)
+            <input
+              name="welcome_message"
+              maxLength={80}
+              placeholder="지혜야 생일 축하해! 🎂"
+              className="rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-ink"
+            />
+          </label>
+          <div className="sm:col-span-2">
+            <button className="rounded-sm bg-stamp-orange px-5 py-2 font-pixel text-[11px] text-white hover:brightness-95">
+              보드 만들기
+            </button>
+          </div>
+        </form>
+
+        {boards.length === 0 ? (
+          <p className="text-sm text-ink/60">아직 만든 보드가 없어요.</p>
+        ) : (
+          <ul className="divide-y divide-paper-line/60">
+            {boards.map((b) => (
+              <li key={b.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <Link
+                    href={`/${encodeURIComponent(b.display_name)}`}
+                    target="_blank"
+                    className="font-pixel text-[12px] text-album-navy underline"
+                  >
+                    {b.display_name}
+                  </Link>
+                  <p className="truncate text-xs text-ink/60">
+                    {b.welcome_message || "기본 환영 문구"}
+                  </p>
+                </div>
+                <form action={deleteBoard}>
+                  <input type="hidden" name="board_id" value={b.id} />
+                  <button className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline">
+                    삭제
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* 업로드 폼 */}
       <form action={uploadPhotos} className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
@@ -119,6 +216,47 @@ export default async function AdminPage({
           <option key={n} value={n} />
         ))}
       </datalist>
+
+      {/* 비밀번호 변경 */}
+      <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
+        <h2 className="mb-3 font-pixel text-[12px] text-album-navy">비밀번호 변경</h2>
+        <form action={changePassword} className="grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm text-ink">
+            현재 비밀번호
+            <input
+              name="current_password"
+              type="password"
+              required
+              className="rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-ink"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-ink">
+            새 비밀번호 (4자 이상)
+            <input
+              name="new_password"
+              type="password"
+              required
+              minLength={4}
+              className="rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-ink"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-ink">
+            새 비밀번호 확인
+            <input
+              name="confirm_password"
+              type="password"
+              required
+              minLength={4}
+              className="rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-ink"
+            />
+          </label>
+          <div className="sm:col-span-3">
+            <button className="rounded-sm bg-album-navy px-5 py-2 font-pixel text-[11px] text-white hover:bg-album-navy/90">
+              변경하기
+            </button>
+          </div>
+        </form>
+      </section>
 
       {/* 사진 목록 */}
       <h2 className="mb-3 font-pixel text-[12px] text-album-navy">업로드된 사진 ({photos.length})</h2>

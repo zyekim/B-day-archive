@@ -44,6 +44,23 @@ create table if not exists comments (
   created_at timestamptz default now()
 );
 
+-- 어드민 설정 (비밀번호 해시 저장 · 단일 행 · RLS 정책 없음 = anon 접근 차단)
+create table if not exists admin_config (
+  id int primary key default 1 check (id = 1),
+  password_hash text not null,   -- 형식: scrypt salt:hash (hex)
+  updated_at timestamptz default now()
+);
+alter table admin_config enable row level security;
+
+create table if not exists boards (
+  id uuid primary key default gen_random_uuid(),
+  friend_name text not null unique,   -- 정규화(소문자·trim)된 이름
+  display_name text not null,         -- 표시용 원본 이름
+  welcome_message text,               -- 보드별 환영 쪽지 (null이면 기본 문구)
+  created_at timestamptz default now()
+);
+create index if not exists idx_boards_name on boards (lower(friend_name));
+
 -- 2) Storage 버킷 -------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('photos', 'photos', true)
@@ -55,8 +72,11 @@ alter table photo_tags enable row level security;
 alter table board_likes enable row level security;
 alter table board_uploads enable row level security;
 alter table comments enable row level security;
+alter table boards enable row level security;
 
 create policy "read photos" on photos for select using (true);
+-- boards: anon 읽기만. 생성/삭제는 service_role(어드민 서버 액션)로만.
+create policy "read boards" on boards for select using (true);
 create policy "read photo_tags" on photo_tags for select using (true);
 create policy "read board_likes" on board_likes for select using (true);
 create policy "read board_uploads" on board_uploads for select using (true);

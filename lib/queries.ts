@@ -1,5 +1,5 @@
 import { createAnonClient } from "./supabase";
-import type { Photo, BoardUpload, Comment, BoardPhoto } from "./types";
+import type { Photo, BoardUpload, Comment, BoardPhoto, Board } from "./types";
 
 export function normalizeName(name: string): string {
   return decodeURIComponent(name).trim().toLowerCase();
@@ -7,6 +7,7 @@ export function normalizeName(name: string): string {
 
 export type BoardData = {
   displayName: string;
+  board: Board | null;
   photos: BoardPhoto[];
   uploads: BoardUpload[];
   comments: Comment[];
@@ -19,6 +20,14 @@ export async function getBoardData(rawName: string): Promise<BoardData> {
   const name = normalizeName(rawName);
   const displayName = decodeURIComponent(rawName).trim();
   const supabase = createAnonClient();
+
+  // 0) 등록된 보드 (어드민이 생성)
+  const { data: boardRow } = await supabase
+    .from("boards")
+    .select("*")
+    .ilike("friend_name", name)
+    .maybeSingle();
+  const board = (boardRow ?? null) as Board | null;
 
   // 1) 태그된 사진 id
   const { data: tags } = await supabase
@@ -69,12 +78,18 @@ export async function getBoardData(rawName: string): Promise<BoardData> {
   const commentsArr = (comments ?? []) as Comment[];
 
   return {
-    displayName,
+    // 보드에 등록된 표시용 이름 우선
+    displayName: board?.display_name ?? displayName,
+    board,
     photos: boardPhotos,
     uploads: uploadsArr,
     comments: commentsArr,
     likeCount: likedSet.size,
+    // 등록된 보드면 내용이 없어도 열어준다
     isEmpty:
-      boardPhotos.length === 0 && uploadsArr.length === 0 && commentsArr.length === 0,
+      !board &&
+      boardPhotos.length === 0 &&
+      uploadsArr.length === 0 &&
+      commentsArr.length === 0,
   };
 }

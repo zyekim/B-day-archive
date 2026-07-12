@@ -24,6 +24,7 @@ export default async function BoardPage({
 
   const board = await getBoardData(params.name);
   const { displayName, photos, uploads, comments, likeCount } = board;
+  const welcomeMessage = board.board?.welcome_message ?? null;
 
   if (board.isEmpty) {
     return (
@@ -72,8 +73,12 @@ export default async function BoardPage({
               aria-hidden="true"
               className="mx-auto mb-1 block h-4 w-16 -rotate-3 border border-[#d2b45a]/40 bg-[rgba(255,253,247,0.7)]"
             />
-            <p className="font-hand text-xl leading-6 text-ink">
-              {displayName}아 생일 축하해! 🎂<br />같이 찍은 사진 모아뒀어.<br />좋아요랑 쪽지 남겨줘~
+            <p className="whitespace-pre-line font-hand text-xl leading-6 text-ink">
+              {welcomeMessage ?? (
+                <>
+                  {displayName}아 생일 축하해! 🎂<br />같이 찍은 사진 모아뒀어.<br />좋아요랑 쪽지 남겨줘~
+                </>
+              )}
             </p>
           </div>
         </div>

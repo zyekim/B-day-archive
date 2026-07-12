@@ -35,5 +35,13 @@ export type Comment = {
   created_at: string;
 };
 
+export type Board = {
+  id: string;
+  friend_name: string;
+  display_name: string;
+  welcome_message: string | null;
+  created_at: string;
+};
+
 /** 보드 페이지에서 쓰는 사진 + 좋아요 수 합본 */
 export type BoardPhoto = Photo & { likeCount: number };
