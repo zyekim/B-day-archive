@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase";
 
@@ -23,11 +23,18 @@ export default function UploadForm({
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [refreshing, startTransition] = useTransition();
+
+  // 저장 완료 + 보드 갱신 완료 → 그때 닫기 (사진이 실제로 화면에 뜬 뒤)
+  useEffect(() => {
+    if (saved && !refreshing) onSuccess?.();
+  }, [saved, refreshing, onSuccess]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
-    if (!file || busy) return;
+    if (!file || busy || saved) return;
     if (!OK_TYPES.includes(file.type)) {
       setMsg("jpg / png / webp / heic 이미지만 올릴 수 있어요.");
       return;
@@ -62,8 +69,10 @@ export default function UploadForm({
       setCaption("");
       if (fileRef.current) fileRef.current.value = "";
       setMsg("붙였어요! 🎉");
-      router.refresh();
-      onSuccess?.();
+      setSaved(true);
+      startTransition(() => {
+        router.refresh();
+      });
     } catch {
       setMsg("Supabase 연결을 확인해주세요.");
     } finally {
@@ -90,10 +99,20 @@ export default function UploadForm({
       {msg && <p className="mb-1 font-body text-xs text-ink">{msg}</p>}
       <button
         type="submit"
-        disabled={busy}
+        disabled={busy || saved}
         className="w-full rounded-sm bg-stamp-orange py-2 font-pixel text-[11px] text-white transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-album-navy disabled:opacity-50"
       >
-        {busy ? "올리는 중..." : "사진 붙이기"}
+        {busy || saved ? (
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-white/50 border-t-white"
+            />
+            {saved ? "보드에 붙이는 중..." : "올리는 중..."}
+          </span>
+        ) : (
+          "사진 붙이기"
+        )}
       </button>
     </form>
   );

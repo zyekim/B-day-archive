@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase";
 
@@ -17,10 +17,17 @@ export default function NoteForm({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [refreshing, startTransition] = useTransition();
+
+  // 저장 완료 + 보드 갱신 완료 → 그때 닫기 (화면에 실제로 나타난 뒤)
+  useEffect(() => {
+    if (saved && !refreshing) onSuccess?.();
+  }, [saved, refreshing, onSuccess]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!author.trim() || !message.trim() || busy) return;
+    if (!author.trim() || !message.trim() || busy || saved) return;
     setBusy(true);
     setError("");
     try {
@@ -34,8 +41,10 @@ export default function NoteForm({
         setError("쪽지 남기기에 실패했어요. 잠시 후 다시 시도해주세요.");
       } else {
         setMessage("");
-        router.refresh();
-        onSuccess?.();
+        setSaved(true);
+        startTransition(() => {
+          router.refresh();
+        });
       }
     } catch {
       setError("연결을 확인해주세요.");
@@ -43,6 +52,8 @@ export default function NoteForm({
       setBusy(false);
     }
   }
+
+  const working = busy || saved;
 
   return (
     <form
@@ -69,10 +80,20 @@ export default function NoteForm({
       {error && <p className="mt-1 font-body text-xs text-[#c0392b]">{error}</p>}
       <button
         type="submit"
-        disabled={busy || !author.trim() || !message.trim()}
+        disabled={working || !author.trim() || !message.trim()}
         className="mt-2 w-full rounded-sm bg-album-navy py-2 font-pixel text-[11px] text-white transition hover:bg-album-navy/90 focus-visible:ring-2 focus-visible:ring-stamp-orange disabled:opacity-50"
       >
-        {busy ? "붙이는 중..." : "쪽지 붙이기"}
+        {working ? (
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-white/50 border-t-white"
+            />
+            {saved ? "보드에 붙이는 중..." : "저장하는 중..."}
+          </span>
+        ) : (
+          "쪽지 붙이기"
+        )}
       </button>
     </form>
   );
