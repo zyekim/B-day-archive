@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Patch from "@/components/deco/Patch";
 
 export default function EntryPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [pending, startTransition] = useTransition();
 
   function go(e: React.FormEvent) {
     e.preventDefault();
     const n = name.trim();
-    if (!n) return;
-    router.push(`/${encodeURIComponent(n)}`);
+    if (!n || pending) return;
+    startTransition(() => {
+      router.push(`/${encodeURIComponent(n)}`);
+    });
   }
 
   return (
@@ -58,9 +61,21 @@ export default function EntryPage() {
           />
           <button
             type="submit"
-            className="w-full rounded-sm bg-stamp-orange py-2.5 font-pixel text-[12px] text-white transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-album-navy"
+            disabled={pending}
+            aria-busy={pending}
+            className="w-full rounded-sm bg-stamp-orange py-2.5 font-pixel text-[12px] text-white transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-album-navy disabled:cursor-wait disabled:opacity-60"
           >
-            내 보드 열기
+            {pending ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-3 w-3 animate-spin rounded-full border-2 border-white/50 border-t-white"
+                />
+                보드 여는 중...
+              </span>
+            ) : (
+              "내 보드 열기"
+            )}
           </button>
         </form>
 

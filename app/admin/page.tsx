@@ -1,5 +1,6 @@
 import { supabaseConfigured, createServiceClient } from "@/lib/supabase";
 import SetupNotice from "@/components/SetupNotice";
+import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
 import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, deleteBoard, changePassword } from "./actions";
 import type { Photo, PhotoTag, Board } from "@/lib/types";
@@ -26,12 +27,12 @@ function LoginGate({ error }: { error?: string }) {
             어드민 설정을 불러올 수 없어요. SUPABASE_SERVICE_ROLE_KEY 환경변수를 확인해주세요.
           </p>
         )}
-        <button
-          type="submit"
+        <SubmitButton
+          pendingText="확인 중..."
           className="w-full rounded-sm bg-album-navy py-2.5 font-pixel text-[12px] text-white hover:bg-album-navy/90 focus-visible:ring-2 focus-visible:ring-stamp-orange"
         >
           입장
-        </button>
+        </SubmitButton>
       </form>
     </main>
   );
@@ -74,7 +75,9 @@ export default async function AdminPage({
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-pixel text-lg text-album-navy">사진 관리</h1>
         <form action={logout}>
-          <button className="font-pixel text-[11px] text-stamp-orange underline">로그아웃</button>
+          <SubmitButton pendingText="로그아웃 중..." className="font-pixel text-[11px] text-stamp-orange underline">
+            로그아웃
+          </SubmitButton>
         </form>
       </div>
 
@@ -137,9 +140,12 @@ export default async function AdminPage({
             />
           </label>
           <div className="sm:col-span-2">
-            <button className="rounded-sm bg-stamp-orange px-5 py-2 font-pixel text-[11px] text-white hover:brightness-95">
+            <SubmitButton
+              pendingText="만드는 중..."
+              className="rounded-sm bg-stamp-orange px-5 py-2 font-pixel text-[11px] text-white hover:brightness-95"
+            >
               보드 만들기
-            </button>
+            </SubmitButton>
           </div>
         </form>
 
@@ -163,9 +169,12 @@ export default async function AdminPage({
                 </div>
                 <form action={deleteBoard}>
                   <input type="hidden" name="board_id" value={b.id} />
-                  <button className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline">
+                  <SubmitButton
+                    pendingText="삭제 중..."
+                    className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline"
+                  >
                     삭제
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -206,9 +215,12 @@ export default async function AdminPage({
             />
           </label>
         </div>
-        <button className="mt-4 rounded-sm bg-stamp-orange px-5 py-2 font-pixel text-[11px] text-white hover:brightness-95">
+        <SubmitButton
+          pendingText="업로드 중..."
+          className="mt-4 rounded-sm bg-stamp-orange px-5 py-2 font-pixel text-[11px] text-white hover:brightness-95"
+        >
           업로드
-        </button>
+        </SubmitButton>
       </form>
 
       <datalist id="all-names">
@@ -251,9 +263,12 @@ export default async function AdminPage({
             />
           </label>
           <div className="sm:col-span-3">
-            <button className="rounded-sm bg-album-navy px-5 py-2 font-pixel text-[11px] text-white hover:bg-album-navy/90">
+            <SubmitButton
+              pendingText="변경 중..."
+              className="rounded-sm bg-album-navy px-5 py-2 font-pixel text-[11px] text-white hover:bg-album-navy/90"
+            >
               변경하기
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </section>
@@ -277,13 +292,21 @@ export default async function AdminPage({
                 placeholder="태그 (콤마 구분)"
                 className="flex-1 rounded-sm border border-paper-line bg-white/70 px-2 py-1 text-sm text-ink"
               />
-              <button className="rounded-sm bg-album-navy px-3 py-1 font-pixel text-[10px] text-white hover:bg-album-navy/90">
+              <SubmitButton
+                pendingText="저장 중..."
+                className="rounded-sm bg-album-navy px-3 py-1 font-pixel text-[10px] text-white hover:bg-album-navy/90"
+              >
                 저장
-              </button>
+              </SubmitButton>
             </form>
             <form action={deletePhoto} className="mt-2 text-right">
               <input type="hidden" name="photo_id" value={p.id} />
-              <button className="font-pixel text-[10px] text-[#c0392b] underline">삭제</button>
+              <SubmitButton
+                pendingText="삭제 중..."
+                className="font-pixel text-[10px] text-[#c0392b] underline"
+              >
+                삭제
+              </SubmitButton>
             </form>
           </li>
         ))}
