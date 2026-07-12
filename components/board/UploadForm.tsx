@@ -11,7 +11,13 @@ const OK_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/
  * 친구 본인 사진 업로드 → Supabase Storage(photos 버킷) + board_uploads insert.
  * 제한: 5MB, jpg/png/webp/heic.
  */
-export default function UploadForm({ boardName }: { boardName: string }) {
+export default function UploadForm({
+  boardName,
+  onSuccess,
+}: {
+  boardName: string;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
@@ -57,6 +63,7 @@ export default function UploadForm({ boardName }: { boardName: string }) {
       if (fileRef.current) fileRef.current.value = "";
       setMsg("붙였어요! 🎉");
       router.refresh();
+      onSuccess?.();
     } catch {
       setMsg("Supabase 연결을 확인해주세요.");
     } finally {
@@ -65,7 +72,7 @@ export default function UploadForm({ boardName }: { boardName: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto w-full max-w-[320px] bg-polaroid p-4 shadow-polaroid">
+    <form onSubmit={submit} className="w-full bg-polaroid p-4 shadow-polaroid">
       <p className="mb-2 font-pixel text-[11px] text-album-navy">내 사진 붙이기</p>
       <input
         ref={fileRef}

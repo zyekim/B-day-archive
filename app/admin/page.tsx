@@ -2,8 +2,8 @@ import { supabaseConfigured, createServiceClient } from "@/lib/supabase";
 import SetupNotice from "@/components/SetupNotice";
 import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
-import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, deleteBoard, changePassword } from "./actions";
-import type { Photo, PhotoTag, Board } from "@/lib/types";
+import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, deleteBoard, changePassword, deleteBoardUpload, deleteComment } from "./actions";
+import type { Photo, PhotoTag, Board, BoardUpload, Comment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +61,18 @@ export default async function AdminPage({
     .select("*")
     .order("created_at", { ascending: true });
   const boards = (boardsData ?? []) as Board[];
+
+  const { data: uploadsData } = await supabase
+    .from("board_uploads")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const friendUploads = (uploadsData ?? []) as BoardUpload[];
+
+  const { data: commentsData } = await supabase
+    .from("comments")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const allComments = (commentsData ?? []) as Comment[];
 
   const tagMap = new Map<string, string[]>();
   for (const t of tags) {
@@ -238,6 +250,63 @@ export default async function AdminPage({
           <option key={n} value={n} />
         ))}
       </datalist>
+
+      {/* 친구가 붙인 사진 관리 */}
+      <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
+        <h2 className="mb-3 font-pixel text-[12px] text-album-navy">
+          친구가 붙인 사진 ({friendUploads.length})
+        </h2>
+        {friendUploads.length === 0 ? (
+          <p className="text-sm text-ink/60">아직 친구가 붙인 사진이 없어요.</p>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {friendUploads.map((u) => (
+              <li key={u.id} className="rounded-sm border border-paper-line bg-white/60 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={u.image_url} alt={u.caption || ""} className="mb-1 h-28 w-full rounded-sm object-cover" />
+                <p className="mb-1 truncate text-xs text-ink/70">
+                  {u.friend_name} 보드 · {u.caption || "캡션 없음"}
+                </p>
+                <form action={deleteBoardUpload} className="text-right">
+                  <input type="hidden" name="upload_id" value={u.id} />
+                  <SubmitButton pendingText="삭제 중..." className="font-pixel text-[10px] text-[#c0392b] underline">
+                    삭제
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* 방명록 쪽지 관리 */}
+      <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
+        <h2 className="mb-3 font-pixel text-[12px] text-album-navy">
+          방명록 쪽지 ({allComments.length})
+        </h2>
+        {allComments.length === 0 ? (
+          <p className="text-sm text-ink/60">아직 쪽지가 없어요.</p>
+        ) : (
+          <ul className="divide-y divide-paper-line/60">
+            {allComments.map((c) => (
+              <li key={c.id} className="flex items-start justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-xs text-ink/60">
+                    {c.friend_name} 보드 · {c.author_name}
+                  </p>
+                  <p className="truncate text-sm text-ink">{c.message}</p>
+                </div>
+                <form action={deleteComment}>
+                  <input type="hidden" name="comment_id" value={c.id} />
+                  <SubmitButton pendingText="삭제 중..." className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline">
+                    삭제
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* 비밀번호 변경 */}
       <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">

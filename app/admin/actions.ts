@@ -189,13 +189,55 @@ export async function updateTags(formData: FormData) {
   revalidatePath("/admin");
 }
 
-/** 사진 삭제 (photo_tags는 cascade) */
+/** image_url에서 storage 경로 추출 (photos 버킷) */
+function storagePathFromUrl(imageUrl: string): string | null {
+  const marker = "/object/public/photos/";
+  const i = imageUrl.indexOf(marker);
+  if (i < 0) return null;
+  return decodeURIComponent(imageUrl.slice(i + marker.length));
+}
+
+/** 사진 삭제 (photo_tags는 cascade) + 스토리지 파일도 정리 */
 export async function deletePhoto(formData: FormData) {
   await assertAdmin();
   const photoId = String(formData.get("photo_id") ?? "");
   if (!photoId) return;
   const supabase = createServiceClient();
+  const { data: row } = await supabase
+    .from("photos")
+    .select("image_url")
+    .eq("id", photoId)
+    .maybeSingle();
+  const path = row?.image_url ? storagePathFromUrl(row.image_url) : null;
+  if (path) await supabase.storage.from("photos").remove([path]);
   await supabase.from("photos").delete().eq("id", photoId);
+  revalidatePath("/admin");
+}
+
+/** 친구가 붙인 사진 삭제 + 스토리지 파일도 정리 */
+export async function deleteBoardUpload(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("upload_id") ?? "");
+  if (!id) return;
+  const supabase = createServiceClient();
+  const { data: row } = await supabase
+    .from("board_uploads")
+    .select("image_url")
+    .eq("id", id)
+    .maybeSingle();
+  const path = row?.image_url ? storagePathFromUrl(row.image_url) : null;
+  if (path) await supabase.storage.from("photos").remove([path]);
+  await supabase.from("board_uploads").delete().eq("id", id);
+  revalidatePath("/admin");
+}
+
+/** 방명록 쪽지 삭제 */
+export async function deleteComment(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("comment_id") ?? "");
+  if (!id) return;
+  const supabase = createServiceClient();
+  await supabase.from("comments").delete().eq("id", id);
   revalidatePath("/admin");
 }
 

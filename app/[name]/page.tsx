@@ -5,10 +5,8 @@ import {seededPick} from "@/lib/seed-rotation";
 import SetupNotice from "@/components/SetupNotice";
 import CorkBoard from "@/components/board/CorkBoard";
 import NameTag from "@/components/board/NameTag";
-import Receipt from "@/components/board/Receipt";
 import GuestbookThread from "@/components/board/GuestbookThread";
-import UploadForm from "@/components/board/UploadForm";
-import Doily from "@/components/deco/Doily";
+import BoardFabs from "@/components/board/BoardFabs";
 import PatchScatter from "@/components/deco/PatchScatter";
 import Polaroid from "@/components/photo/Polaroid";
 import PhotoStrip from "@/components/photo/PhotoStrip";
@@ -127,17 +125,17 @@ export default async function BoardPage({params}: {params: {name: string}}) {
           </div>
         </section>
 
-        {/* 내가 붙인 사진 */}
-        <section className="relative z-10 mt-10">
-          <div className="mb-3 flex items-center justify-center gap-2">
-            <span className="h-px w-10 bg-ink/20" />
-            <h2 className="font-pixel text-[12px] text-album-navy">
-              내가 붙인 사진
-            </h2>
-            <span className="h-px w-10 bg-ink/20" />
-          </div>
-          {uploads.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 justify-items-center gap-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-8">
+        {/* 친구들이 붙인 사진 */}
+        {uploads.length > 0 && (
+          <section className="relative z-10 mt-10">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <span className="h-px w-10 bg-ink/20" />
+              <h2 className="font-pixel text-[12px] text-album-navy">
+                내가 붙인 사진
+              </h2>
+              <span className="h-px w-10 bg-ink/20" />
+            </div>
+            <div className="grid grid-cols-2 justify-items-center gap-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-8">
               {uploads.map((u) => (
                 <Polaroid
                   key={u.id}
@@ -149,23 +147,8 @@ export default async function BoardPage({params}: {params: {name: string}}) {
                 />
               ))}
             </div>
-          )}
-          <UploadForm boardName={displayName} />
-        </section>
-
-        {/* 영수증 통계 */}
-        <section className="relative z-10 mt-10 flex justify-center sm:justify-end">
-          <div className="relative">
-            <Doily size={190} className="absolute -left-6 -top-6 opacity-70" />
-            <Receipt
-              name={displayName}
-              photoCount={photos.length + uploads.length}
-              likeCount={likeCount}
-              commentCount={comments.length}
-              className="relative rotate-[-2deg]"
-            />
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* 방명록 */}
         <section className="relative z-10 mt-12">
@@ -174,9 +157,12 @@ export default async function BoardPage({params}: {params: {name: string}}) {
             <h2 className="font-pixel text-[12px] text-album-navy">방명록</h2>
             <span className="h-px w-10 bg-ink/20" />
           </div>
-          <GuestbookThread boardName={displayName} initialComments={comments} />
+          <GuestbookThread comments={comments} />
         </section>
       </CorkBoard>
+
+      {/* 우측 하단: 사진/쪽지 추가 버튼 */}
+      <BoardFabs boardName={displayName} />
     </main>
   );
 }
