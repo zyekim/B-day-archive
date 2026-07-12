@@ -116,21 +116,27 @@ export async function changePassword(formData: FormData) {
   redirect("/admin?ok=pw");
 }
 
+/** 태그 문자열 정리: 콤마 분리 + 앞의 # 제거 + trim + 소문자 */
+function parseTags(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((t) => t.trim().replace(/^#+/, "").trim().toLowerCase())
+    .filter(Boolean);
+}
+
 /** 사진 업로드(다중) + taken_date/caption/tags 공통 적용 */
 export async function uploadPhotos(formData: FormData) {
   await assertAdmin();
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   const takenDate = String(formData.get("taken_date") ?? "").trim() || null;
   const caption = String(formData.get("caption") ?? "").trim() || null;
-  const tagsRaw = String(formData.get("tags") ?? "");
-  const tags = tagsRaw
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const tags = parseTags(String(formData.get("tags") ?? ""));
 
   if (files.length === 0) redirect("/admin?error=nofile");
 
   const supabase = createServiceClient();
+  let okCount = 0;
+  let failCount = 0;
 
   for (const file of files) {
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -139,22 +145,31 @@ export async function uploadPhotos(formData: FormData) {
     const { error: upErr } = await supabase.storage
       .from("photos")
       .upload(path, buffer, { contentType: file.type || "image/jpeg", upsert: false });
-    if (upErr) continue;
+    if (upErr) {
+      failCount++;
+      continue;
+    }
     const { data: pub } = supabase.storage.from("photos").getPublicUrl(path);
     const { data: photo, error: insErr } = await supabase
       .from("photos")
       .insert({ image_url: pub.publicUrl, taken_date: takenDate, caption })
       .select()
       .single();
-    if (insErr || !photo) continue;
+    if (insErr || !photo) {
+      failCount++;
+      continue;
+    }
     if (tags.length > 0) {
       await supabase.from("photo_tags").insert(
-        tags.map((name) => ({ photo_id: photo.id, friend_name: name.toLowerCase() }))
+        tags.map((name) => ({ photo_id: photo.id, friend_name: name }))
       );
     }
+    okCount++;
   }
 
   revalidatePath("/admin");
+  if (okCount === 0) redirect("/admin?error=upfail");
+  if (failCount > 0) redirect(`/admin?ok=upload&fail=${failCount}`);
   redirect("/admin?ok=upload");
 }
 
@@ -162,18 +177,14 @@ export async function uploadPhotos(formData: FormData) {
 export async function updateTags(formData: FormData) {
   await assertAdmin();
   const photoId = String(formData.get("photo_id") ?? "");
-  const tagsRaw = String(formData.get("tags") ?? "");
-  const tags = tagsRaw
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const tags = parseTags(String(formData.get("tags") ?? ""));
   if (!photoId) return;
   const supabase = createServiceClient();
   await supabase.from("photo_tags").delete().eq("photo_id", photoId);
   if (tags.length > 0) {
     await supabase
       .from("photo_tags")
-      .insert(tags.map((name) => ({ photo_id: photoId, friend_name: name.toLowerCase() })));
+      .insert(tags.map((name) => ({ photo_id: photoId, friend_name: name })));
   }
   revalidatePath("/admin");
 }

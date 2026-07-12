@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getBoardData } from "@/lib/queries";
-import { supabaseConfigured } from "@/lib/supabase";
-import { seededPick } from "@/lib/seed-rotation";
+import {getBoardData} from "@/lib/queries";
+import {supabaseConfigured} from "@/lib/supabase";
+import {seededPick} from "@/lib/seed-rotation";
 import SetupNotice from "@/components/SetupNotice";
 import CorkBoard from "@/components/board/CorkBoard";
 import NameTag from "@/components/board/NameTag";
@@ -15,26 +15,31 @@ import PhotoStrip from "@/components/photo/PhotoStrip";
 
 export const dynamic = "force-dynamic";
 
-export default async function BoardPage({
-  params,
-}: {
-  params: { name: string };
-}) {
+export default async function BoardPage({params}: {params: {name: string}}) {
   if (!supabaseConfigured) return <SetupNotice />;
 
   const board = await getBoardData(params.name);
-  const { displayName, photos, uploads, comments, likeCount } = board;
+  const {displayName, photos, uploads, comments, likeCount} = board;
   const welcomeMessage = board.board?.welcome_message ?? null;
 
   if (board.isEmpty) {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 text-center">
         <div className="w-full bg-polaroid p-6 shadow-polaroid">
-          <h1 className="mb-3 font-pixel text-lg text-album-navy">{displayName}님?</h1>
+          <h1 className="mb-3 font-pixel text-lg text-album-navy">
+            {displayName}님?
+          </h1>
           <p className="font-hand text-2xl leading-8 text-ink">
-            아직 우리 사진이<br />업로드 안 됐나봐요!<br />주인장에게 연락해주세요 🥲
+            아직 우리 사진이
+            <br />
+            업로드 안 됐나봐요!
+            <br />
+            주인장에게 연락해주세요 🥲
           </p>
-          <Link href="/" className="mt-4 inline-block font-pixel text-[11px] text-stamp-orange underline">
+          <Link
+            href="/"
+            className="mt-4 inline-block font-pixel text-[11px] text-stamp-orange underline"
+          >
             ← 다른 이름으로
           </Link>
         </div>
@@ -45,13 +50,20 @@ export default async function BoardPage({
   // 4장 이상이면 인생네컷 스트립 1개 (시드 고정)
   const stripPhotos =
     photos.length >= 4
-      ? [...photos].sort((a, b) => (a.id + displayName).localeCompare(b.id + displayName)).slice(0, 4)
+      ? [...photos]
+          .sort((a, b) =>
+            (a.id + displayName).localeCompare(b.id + displayName),
+          )
+          .slice(0, 4)
       : [];
 
   return (
     <main className="mx-auto max-w-5xl px-3 py-8 sm:px-6">
       <header className="mb-4 text-center">
-        <Link href="/" className="font-pixel text-[11px] text-album-navy/70 underline">
+        <Link
+          href="/"
+          className="font-pixel text-[11px] text-album-navy/70 underline"
+        >
           ← 입구로
         </Link>
       </header>
@@ -66,7 +78,8 @@ export default async function BoardPage({
             className="w-[220px] rotate-[1.5deg] px-4 py-3 shadow-polaroid"
             style={{
               backgroundColor: "#FFF7C2",
-              backgroundImage: "repeating-linear-gradient(transparent, transparent 23px, #9FB4D8 24px)",
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 23px, #9FB4D8 24px)",
             }}
           >
             <span
@@ -76,7 +89,11 @@ export default async function BoardPage({
             <p className="whitespace-pre-line font-hand text-xl leading-6 text-ink">
               {welcomeMessage ?? (
                 <>
-                  {displayName}아 생일 축하해! 🎂<br />같이 찍은 사진 모아뒀어.<br />좋아요랑 쪽지 남겨줘~
+                  {displayName}아 생일 축하해줘 고마워! 🎂
+                  <br />
+                  같이 찍은 사진 모아뒀어.
+                  <br />
+                  좋아요랑 쪽지 남겨줘~
                 </>
               )}
             </p>
@@ -101,7 +118,11 @@ export default async function BoardPage({
               />
             ))}
             {stripPhotos.length === 4 && (
-              <PhotoStrip id={displayName + ":strip"} photos={stripPhotos} width={132} />
+              <PhotoStrip
+                id={displayName + ":strip"}
+                photos={stripPhotos}
+                width={132}
+              />
             )}
           </div>
         </section>
@@ -110,7 +131,9 @@ export default async function BoardPage({
         <section className="relative z-10 mt-10">
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="h-px w-10 bg-ink/20" />
-            <h2 className="font-pixel text-[12px] text-album-navy">내가 붙인 사진</h2>
+            <h2 className="font-pixel text-[12px] text-album-navy">
+              내가 붙인 사진
+            </h2>
             <span className="h-px w-10 bg-ink/20" />
           </div>
           {uploads.length > 0 && (

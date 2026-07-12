@@ -60,7 +60,9 @@ export default function EntryPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-md text-center">
-        <p className="mb-2 font-hand text-2xl text-dusty-rose">우리들의</p>
+        <p className="mb-2 font-hand text-2xl text-dusty-rose">
+          반짝반짝 우리들 공간
+        </p>
         <h1 className="mb-8 font-pixel text-[22px] leading-relaxed text-album-navy sm:text-2xl">
           누구의 방명록에
           <br />

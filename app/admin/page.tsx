@@ -41,7 +41,7 @@ function LoginGate({ error }: { error?: string }) {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { error?: string; ok?: string };
+  searchParams: { error?: string; ok?: string; fail?: string };
 }) {
   if (!supabaseConfigured) return <SetupNotice />;
   if (!(await isAdmin())) return <LoginGate error={searchParams.error} />;
@@ -81,8 +81,18 @@ export default async function AdminPage({
         </form>
       </div>
 
-      {searchParams.ok === "upload" && (
+      {searchParams.ok === "upload" && !searchParams.fail && (
         <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">업로드 완료!</p>
+      )}
+      {searchParams.ok === "upload" && searchParams.fail && (
+        <p className="mb-4 rounded-sm bg-[#FFF3D6] px-3 py-2 text-sm text-[#8A6100]">
+          일부만 업로드됐어요 (실패 {searchParams.fail}장). 파일 크기를 확인하고 다시 시도해주세요.
+        </p>
+      )}
+      {searchParams.error === "upfail" && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">
+          업로드에 실패했어요. SUPABASE_SERVICE_ROLE_KEY 설정과 파일 크기(장당 5MB 이하 권장)를 확인해주세요.
+        </p>
       )}
       {searchParams.ok === "board" && (
         <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">보드 생성 완료!</p>
