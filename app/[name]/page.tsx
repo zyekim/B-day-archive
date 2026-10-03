@@ -16,8 +16,19 @@ export const dynamic = "force-dynamic";
 export default async function BoardPage({params}: {params: {name: string}}) {
   if (!supabaseConfigured) return <SetupNotice />;
 
-  const board = await getBoardData(params.name);
-  const {displayName, photos, uploads, comments, likeCount} = board;
+  let board;
+  try {
+    board = await getBoardData(params.name);
+  } catch (error) {
+    console.error("보드 조회 실패:", error);
+    return (
+      <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 text-center">
+        <p>보드를 불러오지 못했어요. Supabase 연결을 확인해주세요.</p>
+        <a href={`/${encodeURIComponent(params.name)}`} className="mt-4 underline">다시 시도</a>
+      </main>
+    );
+  }
+  const {displayName, boardName, photos, uploads, comments, likeCount} = board;
   const welcomeMessage = board.board?.welcome_message ?? null;
 
   if (board.isEmpty) {
@@ -108,7 +119,7 @@ export default async function BoardPage({params}: {params: {name: string}}) {
                 imageUrl={p.image_url}
                 caption={p.caption}
                 takenDate={p.taken_date}
-                boardName={displayName}
+                boardName={boardName}
                 likeCount={p.likeCount}
                 liked={p.likeCount > 0}
                 width={seededPick(p.id, [180, 200, 210], "w") as number}
@@ -162,7 +173,7 @@ export default async function BoardPage({params}: {params: {name: string}}) {
       </CorkBoard>
 
       {/* 우측 하단: 사진/쪽지 추가 버튼 */}
-      <BoardFabs boardName={displayName} />
+      <BoardFabs boardName={boardName} />
     </main>
   );
 }

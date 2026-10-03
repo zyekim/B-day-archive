@@ -261,12 +261,44 @@ export async function createBoard(formData: FormData) {
   redirect("/admin?ok=board");
 }
 
+/** 보드 표시 이름과 환영 쪽지 수정 (주소에 쓰는 이름은 유지) */
+export async function updateBoard(formData: FormData) {
+  await assertAdmin();
+  const boardId = String(formData.get("board_id") ?? "");
+  const displayName = String(formData.get("display_name") ?? "").trim();
+  const welcome = String(formData.get("welcome_message") ?? "").trim();
+  if (!boardId || !displayName || displayName.length > 30 || welcome.length > 80) {
+    redirect("/admin?error=editboard");
+  }
+
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("boards")
+    .update({ display_name: displayName, welcome_message: welcome || null })
+    .eq("id", boardId)
+    .select("friend_name")
+    .maybeSingle();
+  if (error || !data) redirect("/admin?error=editboard");
+
+  revalidatePath("/admin");
+  revalidatePath(`/${encodeURIComponent(data.friend_name)}`);
+  redirect("/admin?ok=editboard");
+}
+
 /** 보드 삭제 (사진/방명록 데이터는 유지 — 태그 기반 노출은 계속됨) */
 export async function deleteBoard(formData: FormData) {
   await assertAdmin();
   const boardId = String(formData.get("board_id") ?? "");
-  if (!boardId) return;
+  if (!boardId) redirect("/admin?error=deleteboard");
   const supabase = createServiceClient();
-  await supabase.from("boards").delete().eq("id", boardId);
+  const { data, error } = await supabase
+    .from("boards")
+    .delete()
+    .eq("id", boardId)
+    .select("friend_name")
+    .maybeSingle();
+  if (error || !data) redirect("/admin?error=deleteboard");
   revalidatePath("/admin");
+  revalidatePath(`/${encodeURIComponent(data.friend_name)}`);
+  redirect("/admin?ok=deleteboard");
 }

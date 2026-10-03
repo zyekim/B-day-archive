@@ -1,8 +1,8 @@
-import { supabaseConfigured, createServiceClient } from "@/lib/supabase";
+import { supabaseConfigured, createAnonClient, createServiceClient } from "@/lib/supabase";
 import SetupNotice from "@/components/SetupNotice";
 import SubmitButton from "@/components/SubmitButton";
 import Link from "next/link";
-import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, deleteBoard, changePassword, deleteBoardUpload, deleteComment } from "./actions";
+import { isAdmin, login, logout, uploadPhotos, updateTags, deletePhoto, createBoard, updateBoard, deleteBoard, changePassword, deleteBoardUpload, deleteComment } from "./actions";
 import type { Photo, PhotoTag, Board, BoardUpload, Comment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export default async function AdminPage({
   if (!(await isAdmin())) return <LoginGate error={searchParams.error} />;
 
   const supabase = createServiceClient();
-  const { data: photosData } = await supabase
+  const { data: photosData, error: adminDataError } = await supabase
     .from("photos")
     .select("*")
     .order("created_at", { ascending: false });
@@ -56,7 +56,7 @@ export default async function AdminPage({
   const { data: tagsData } = await supabase.from("photo_tags").select("*");
   const tags = (tagsData ?? []) as PhotoTag[];
 
-  const { data: boardsData } = await supabase
+  const { data: boardsData, error: boardsError } = await createAnonClient()
     .from("boards")
     .select("*")
     .order("created_at", { ascending: true });
@@ -85,7 +85,7 @@ export default async function AdminPage({
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-pixel text-lg text-album-navy">사진 관리</h1>
+        <h1 className="font-pixel text-lg text-album-navy">보드·사진 관리</h1>
         <form action={logout}>
           <SubmitButton pendingText="로그아웃 중..." className="font-pixel text-[11px] text-stamp-orange underline">
             로그아웃
@@ -108,6 +108,21 @@ export default async function AdminPage({
       )}
       {searchParams.ok === "board" && (
         <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">보드 생성 완료!</p>
+      )}
+      {searchParams.ok === "editboard" && (
+        <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">보드를 수정했어요.</p>
+      )}
+      {searchParams.ok === "deleteboard" && (
+        <p className="mb-4 rounded-sm bg-[#DFF3E8] px-3 py-2 text-sm text-[#0F6E56]">보드를 삭제했어요.</p>
+      )}
+      {(searchParams.error === "editboard" || searchParams.error === "deleteboard") && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">보드 변경에 실패했어요. 관리자 키와 입력값을 확인해주세요.</p>
+      )}
+      {adminDataError && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">관리자 키가 유효하지 않아 수정·삭제를 사용할 수 없어요. SUPABASE_SERVICE_ROLE_KEY를 확인해주세요.</p>
+      )}
+      {boardsError && (
+        <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">보드 목록을 불러오지 못했어요.</p>
       )}
       {searchParams.error === "nofile" && (
         <p className="mb-4 rounded-sm bg-[#FCEBEB] px-3 py-2 text-sm text-[#A32D2D]">파일을 선택해주세요.</p>
@@ -140,6 +155,7 @@ export default async function AdminPage({
       {/* 보드 관리 */}
       <section className="mb-10 rounded-md border border-cork/40 bg-polaroid p-5 shadow-sm">
         <h2 className="mb-3 font-pixel text-[12px] text-album-navy">보드 관리</h2>
+        <p className="mb-3 text-xs text-ink/60">보드를 삭제해도 기존 사진·쪽지는 남습니다.</p>
 
         <form action={createBoard} className="mb-5 grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm text-ink">
@@ -171,33 +187,45 @@ export default async function AdminPage({
           </div>
         </form>
 
-        {boards.length === 0 ? (
+        <h3 className="mb-2 font-pixel text-[11px] text-album-navy">생성된 보드 ({boards.length})</h3>
+        {boards.length === 0 && !boardsError ? (
           <p className="text-sm text-ink/60">아직 만든 보드가 없어요.</p>
         ) : (
           <ul className="divide-y divide-paper-line/60">
             {boards.map((b) => (
-              <li key={b.id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
+              <li key={b.id} className="py-3">
+                <div className="flex items-center justify-between gap-3">
                   <Link
-                    href={`/${encodeURIComponent(b.display_name)}`}
+                    href={`/${encodeURIComponent(b.friend_name)}`}
                     target="_blank"
                     className="font-pixel text-[12px] text-album-navy underline"
                   >
                     {b.display_name}
                   </Link>
-                  <p className="truncate text-xs text-ink/60">
-                    {b.welcome_message || "기본 환영 문구"}
-                  </p>
+                  <form action={deleteBoard}>
+                    <input type="hidden" name="board_id" value={b.id} />
+                    <SubmitButton
+                      pendingText="삭제 중..."
+                      className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline"
+                    >
+                      삭제
+                    </SubmitButton>
+                  </form>
                 </div>
-                <form action={deleteBoard}>
-                  <input type="hidden" name="board_id" value={b.id} />
-                  <SubmitButton
-                    pendingText="삭제 중..."
-                    className="shrink-0 font-pixel text-[10px] text-[#c0392b] underline"
-                  >
-                    삭제
-                  </SubmitButton>
-                </form>
+                <p className="truncate text-xs text-ink/60">{b.welcome_message || "기본 환영 문구"}</p>
+                <details className="mt-2 text-sm text-ink">
+                  <summary className="cursor-pointer text-album-navy underline">수정</summary>
+                  <form action={updateBoard} className="mt-2 grid gap-2">
+                    <input type="hidden" name="board_id" value={b.id} />
+                    <label className="grid gap-1">표시 이름 (보드 주소는 그대로)
+                      <input name="display_name" defaultValue={b.display_name} required maxLength={30} className="rounded-sm border border-paper-line bg-white/70 px-2 py-1" />
+                    </label>
+                    <label className="grid gap-1">환영 쪽지 (비우면 기본 문구)
+                      <input name="welcome_message" defaultValue={b.welcome_message ?? ""} maxLength={80} className="rounded-sm border border-paper-line bg-white/70 px-2 py-1" />
+                    </label>
+                    <SubmitButton pendingText="저장 중..." className="justify-self-start rounded-sm bg-album-navy px-3 py-1 text-xs text-white">저장</SubmitButton>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>

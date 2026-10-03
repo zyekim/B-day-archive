@@ -29,6 +29,7 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
+.tmp-tests/
 
 # leftover CRA (safe to delete manually)
 /_old_cra

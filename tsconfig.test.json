@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "incremental": false,
+    "isolatedModules": false,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": ".tmp-tests",
+    "types": ["node"]
+  },
+  "include": ["lib/board-name.ts", "tests/**/*.ts"]
+}
