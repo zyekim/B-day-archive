@@ -15,6 +15,11 @@ export function createAnonClient() {
   }
   return createClient(url, anonKey, {
     auth: { persistSession: false },
+    // 서버에서 새 쪽지/사진을 읽을 때 이전 Supabase GET 결과를 재사용하지 않는다.
+    ...(typeof window === "undefined"
+      ? { global: { fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, { ...init, cache: "no-store" }) } }
+      : {}),
   });
 }
 
