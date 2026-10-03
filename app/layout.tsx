@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "우리의 추억 방명록",
   description: "함께 찍은 사진들이 붙어 있는 코르크보드 스크랩북",
+  icons: { icon: "/deco/Patch%202.png" },
 };
 
 export default function RootLayout({
